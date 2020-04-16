@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.Net;
+using System.IO;
 
 namespace ConsoleChat
 {
@@ -16,6 +18,7 @@ namespace ConsoleChat
         public string RemoteIP;
         public bool Flag = true;
         private Client MainHost = null;
+        public DateTime UserAge = DateTime.Now;
 
         public ConnectedUser(TcpClient client, Client host)
         {
@@ -25,6 +28,7 @@ namespace ConsoleChat
                 tcpClient = client;
                 Stream = client.GetStream();
                 RemoteIP = ((IPEndPoint)(client.Client.RemoteEndPoint)).Address.ToString();
+                MainHost.UsersAddress.Add(IPAddress.Parse(RemoteIP));
             }
             catch(Exception ex)
             {
@@ -34,14 +38,14 @@ namespace ConsoleChat
         }
 
 
-        public void GetTcpMessage()
+        public void GetMessage()
         {
             try
             {
                 while (Flag)
                 {
 
-                    byte[] data = new byte[64]; // буфер для получаемых данных
+                    byte[] data = new byte[1024]; // буфер для получаемых данных
                     StringBuilder builder = new StringBuilder();
                     int bytes = 0;
                     do
@@ -68,29 +72,55 @@ namespace ConsoleChat
                                     MainHost.HisoryWriter.WriteLine("{0:g}  -  {1}[{2}] : {3}", DateTime.Now, Name, RemoteIP, tcpMessage.GetData());
                                     break;
                                 }
-                        /*   case 2:
+                            case 2:
                                 {
-                                    Console.WriteLine("User {0}({1}) leaved chat", Name, RemoteIP);
-                                    MainHost.HisoryWriter.WriteLine("User {0}[{1}] leaved chat", Name, RemoteIP);
-                                    tcpClient.Close();
-                                    MainHost.RemoveUser(this);
-                                    return;
-                                }*/
+                                    UserAge = tcpMessage.GetDate();
+                                    break;
+
+                                }
+                            case 3:
+                                {
+                                    Console.WriteLine("{0}", tcpMessage.GetData());
+                                    break;
+                                }
+                            case 4:
+                                {
+                                    MainHost.HisoryWriter.Close();
+                                    MainHost.HisoryWriter.Dispose();
+                                    try
+                                    { 
+                                        StreamReader HisoryReader = new StreamReader("history.txt", Encoding.Unicode);
+                                        string line;
+                                        while ((line = HisoryReader.ReadLine()) != null)
+                                        {
+                                            SendMessage((new TcpMessage(3, line)).GetBytes());
+                                            Thread.Sleep(100);
+                                        }
+                                        HisoryReader.Close();
+                                        
+                                    }
+                                    catch { }
+                                    MainHost.HisoryWriter = new StreamWriter("history.txt", true, Encoding.Unicode);
+                                    break;
+                                }
                         }
                     }
                 }
             }
             catch
             {
-                Console.WriteLine("User {0}[{1}] leaved chat", Name, RemoteIP);
-                MainHost.HisoryWriter.WriteLine("User {0}[{1}] leaved chat", Name, RemoteIP);
-                tcpClient.Close();
-                MainHost.RemoveUser(this);
+                if (tcpClient != null)
+                {
+                    Console.WriteLine("User {0}[{1}] leaved chat", Name, RemoteIP);
+                    MainHost.HisoryWriter.WriteLine("User {0}[{1}] leaved chat", Name, RemoteIP);
+                    tcpClient.Close();
+                    MainHost.RemoveUser(this);
+                }
                 return;
             }
         }
 
-        public void SendTcpMessage(byte[] msg)
+        public void SendMessage(byte[] msg)
         {
             if (Stream != null)
             {
@@ -101,7 +131,7 @@ namespace ConsoleChat
         public void CloseConnection()
         {            
             tcpClient.Close();
-            MainHost.RemoveUser(this);
+            tcpClient = null;
             return;
         }
     }

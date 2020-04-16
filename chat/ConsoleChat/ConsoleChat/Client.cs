@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -22,7 +20,7 @@ namespace ConsoleChat
         const int TcpPort = 8002;
 
         private List<ConnectedUser> Connected;
-        private List<IPAddress> UsersAddress;
+        public List<IPAddress> UsersAddress;
         
         public StreamReader HisoryReader;
         public StreamWriter HisoryWriter;
@@ -30,7 +28,7 @@ namespace ConsoleChat
 
         public Client(string name)
         {
-            try
+            /*try
             {
                 HisoryReader = new StreamReader("history.txt", Encoding.Unicode);
                 string line;
@@ -43,7 +41,7 @@ namespace ConsoleChat
             catch
             {
                 Console.WriteLine("No history founded");
-            }
+            }*/
 
             Name = name;
             UsersAddress = new List<IPAddress>();
@@ -55,7 +53,7 @@ namespace ConsoleChat
             Listener = new TcpListener(LocalAddress, TcpPort);
             UdpReceiver = new UdpClient(UdpPort);
             Console.WriteLine("Your address: {0}\nBroadcast address: {1}", LocalAddress.ToString(), NetBroadcastAddress.ToString());
-            HisoryWriter = new StreamWriter("history.txt", true, Encoding.Unicode);
+            HisoryWriter = new StreamWriter("history.txt", false, Encoding.Unicode);
         }
 
         public void Working()
@@ -67,16 +65,24 @@ namespace ConsoleChat
                 Thread listenThread = new Thread(new ThreadStart(ListenTcp));
                 listenThread.Start();
                 SendUdpMessage(Name);
+                Console.WriteLine("Wait 5 seconds...");
+                Thread.Sleep(5000);
+                if (Connected.Count > 0)
+                {
+                    ConnectedUser user = Connected[0];
+                    for (int i = 1; i < Connected.Count; i++)
+                    {
+                        if (user.UserAge > Connected[i].UserAge)
+                            user = Connected[i];
+                    }
+                    user.SendMessage((new TcpMessage(4, "")).GetBytes());
+                }
                 SendTcpMessage();
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
             }
-            finally
-            {
-            }
-
         }
 
         private void SendUdpMessage(string name)
@@ -88,11 +94,14 @@ namespace ConsoleChat
                 UdpMessage msg = new UdpMessage(name);
                 byte[] data = msg.GetBytes();
                 sender.Send(data, data.Length, endPoint);
-                sender.Close();
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                sender.Close();
             }
         }
 
@@ -103,9 +112,8 @@ namespace ConsoleChat
             {
                 while (true)
                 {
-                    byte[] rcvData = UdpReceiver.Receive(ref remoteIp); // получаем данные        
+                    byte[] rcvData = UdpReceiver.Receive(ref remoteIp); // получаем данные     
                     UdpMessage msg = new UdpMessage(rcvData);
-                    byte type = 2;
                     if (msg.CheckMessage())
                     {
                         string userName = msg.GetName();
@@ -123,17 +131,14 @@ namespace ConsoleChat
                             ConnectedUser user = new ConnectedUser(client, this);
                             user.Name = userName;
                             Connected.Add(user);
-                            Thread getMessageThread = new Thread(new ThreadStart(user.GetTcpMessage));
+                            Thread getMessageThread = new Thread(new ThreadStart(user.GetMessage));
                             getMessageThread.Start();
-                            user.SendTcpMessage(new TcpMessage(0, Name).GetBytes());    //отправка сообщения с указанием имени новому пользователю
+                            user.SendMessage(new TcpMessage(0, Name).GetBytes());    //отправка сообщения с указанием имени новому пользователю
                         }
                         catch (Exception ex)
                         {
                             Console.WriteLine(ex.Message);
                         }
-
-                        break;
-
                     }
                 }
             }
@@ -160,7 +165,7 @@ namespace ConsoleChat
                     {
                         ConnectedUser user = new ConnectedUser(client, this);
                         Connected.Add(user);
-                        Thread getMessageThread = new Thread(new ThreadStart(user.GetTcpMessage));
+                        Thread getMessageThread = new Thread(new ThreadStart(user.GetMessage));
                         getMessageThread.Start();
                     }
 
@@ -190,7 +195,7 @@ namespace ConsoleChat
                     foreach (var user in Connected)
                     {
                         if (user.tcpClient.Connected)
-                            user.SendTcpMessage(tcpMessage.GetBytes());
+                            user.SendMessage(tcpMessage.GetBytes());
                     }
                 }
                 else
