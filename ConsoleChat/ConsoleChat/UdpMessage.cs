@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace ConsoleChat
 {
+   
     public class UdpMessage
     {
         private byte NameLength = 0;
@@ -15,7 +16,7 @@ namespace ConsoleChat
         public UdpMessage(string name)
         {
             Name = Encoding.Unicode.GetBytes(name);
-            NameLength = (byte)Name.Length;
+            NameLength = (byte)Name.Length;            
         }
 
         public UdpMessage(byte[] bytes)
@@ -37,7 +38,7 @@ namespace ConsoleChat
 
         public byte[] GetBytes()
         {
-            byte[] bytes = new byte[NameLength + 2];
+            byte[] bytes = new byte[NameLength + 1];
             bytes[0] = NameLength;
             Array.Copy(Name, 0, bytes, 1, NameLength);
             return bytes;

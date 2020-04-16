@@ -73,10 +73,6 @@ namespace ConsoleChat
             {
                 Console.WriteLine(ex.Message);
             }
-            finally
-            {
-            }
-
         }
 
         private void SendUdpMessage(string name)
@@ -88,11 +84,14 @@ namespace ConsoleChat
                 UdpMessage msg = new UdpMessage(name);
                 byte[] data = msg.GetBytes();
                 sender.Send(data, data.Length, endPoint);
-                sender.Close();
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
+            }
+            finally
+            {
+                sender.Close();
             }
         }
 
@@ -103,9 +102,8 @@ namespace ConsoleChat
             {
                 while (true)
                 {
-                    byte[] rcvData = UdpReceiver.Receive(ref remoteIp); // получаем данные        
+                    byte[] rcvData = UdpReceiver.Receive(ref remoteIp); // получаем данные     
                     UdpMessage msg = new UdpMessage(rcvData);
-                    byte type = 2;
                     if (msg.CheckMessage())
                     {
                         string userName = msg.GetName();
@@ -131,9 +129,6 @@ namespace ConsoleChat
                         {
                             Console.WriteLine(ex.Message);
                         }
-
-                        break;
-
                     }
                 }
             }
