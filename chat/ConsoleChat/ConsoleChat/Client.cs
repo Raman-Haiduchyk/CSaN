@@ -77,7 +77,8 @@ namespace ConsoleChat
                         if (user.UserAge > Connected[i].UserAge)
                             user = Connected[i];
                     }
-                    user.SendMessage((new TcpMessage(4, "")).GetBytes());
+                    if (user.UserAge < ConnectionTime)
+                        user.SendMessage((new TcpMessage(4, "")).GetBytes());
                 }
                 SendTcpMessage();
             }
