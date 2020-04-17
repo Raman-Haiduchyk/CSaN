@@ -25,6 +25,8 @@ namespace ConsoleChat
         public StreamReader HisoryReader;
         public StreamWriter HisoryWriter;
 
+        public DateTime ConnectionTime = DateTime.Now;
+
 
         public Client(string name)
         {
@@ -133,7 +135,11 @@ namespace ConsoleChat
                             Connected.Add(user);
                             Thread getMessageThread = new Thread(new ThreadStart(user.GetMessage));
                             getMessageThread.Start();
-                            user.SendMessage(new TcpMessage(0, Name).GetBytes());    //отправка сообщения с указанием имени новому пользователю
+                            user.SendMessage(new TcpMessage(0, Name).GetBytes());
+                            Thread.Sleep(100);
+                            user.SendMessage(new TcpMessage(ConnectionTime.Day, ConnectionTime.Hour, ConnectionTime.Minute, ConnectionTime.Second).GetBytes());
+                            
+                            //отправка сообщения с указанием имени новому пользователю
                         }
                         catch (Exception ex)
                         {
