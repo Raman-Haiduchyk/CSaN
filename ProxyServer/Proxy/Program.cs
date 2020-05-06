@@ -15,14 +15,18 @@ namespace Proxy
 
         static void Main(string[] args)
         {
-            var listener = new TcpListener(IPAddress.Parse("127.0.0.1"), 8001);
+            TcpListener listener = new TcpListener(IPAddress.Parse("127.0.0.1"), 8001);
             listener.Start();
-            while (true) 
-            {
-                var client = listener.AcceptTcpClient();
-                Thread thread = new Thread(() => ProcessRequest(client));
-                thread.Start();
+            try
+            { 
+                while (true)
+                {
+                    TcpClient client = listener.AcceptTcpClient();
+                    Thread thread = new Thread(() => ProcessRequest(client));
+                    thread.Start();
+                }
             }
+            catch { listener.Stop(); }
         }
 
         public static void ProcessRequest(TcpClient client) 
@@ -86,12 +90,10 @@ namespace Proxy
 
                 NetworkStream servStream = forwardingClient.GetStream(); 
                 byte[] data = Encoding.ASCII.GetBytes(request); //пересылка пакета с использованием относительного пути
-                servStream.Write(data, 0, data.Length); 
-                var respBuf = new byte[forwardingClient.ReceiveBufferSize];
+                servStream.Write(data, 0, data.Length);
+                byte[] respBuf = new byte[256];//forwardingClient.ReceiveBufferSize];
 
-                
-                
-                servStream.Read(respBuf, 0, forwardingClient.ReceiveBufferSize);
+                servStream.Read(respBuf, 0, 256);// forwardingClient.ReceiveBufferSize);
 
                 browserStream.Write(respBuf, 0, respBuf.Length);
                 
